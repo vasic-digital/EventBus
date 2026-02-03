@@ -1,0 +1,136 @@
+classDiagram
+    class Event {
+        +string ID
+        +Type Type
+        +string Source
+        +interface~~ Payload
+        +time.Time Timestamp
+        +string TraceID
+        +map~string,string~ Metadata
+        +New(Type, string, interface~~) *Event
+        +WithTraceID(string) *Event
+        +WithMetadata(string, string) *Event
+    }
+
+    class Type {
+        <<string alias>>
+    }
+
+    class Handler {
+        <<func(*Event)>>
+    }
+
+    class Subscription {
+        +string ID
+        +[]Type Types
+        +chan *Event Channel
+        +Cancel()
+        +NewSubscription(string, []Type, chan, func) *Subscription
+    }
+
+    class EventBus {
+        -map~Type,[]subscriber~ subscribers
+        -[]subscriber allSubs
+        -sync.RWMutex mu
+        -Config config
+        -Metrics metrics
+        -[]Middleware middlewares
+        -context.Context ctx
+        -bool closed
+        +New(Config) *EventBus
+        +Use(Middleware...)
+        +Publish(*Event)
+        +PublishAsync(*Event)
+        +Subscribe(Type) *Subscription
+        +SubscribeWithFilter(Type, Filter) *Subscription
+        +SubscribeMultiple(Type...) *Subscription
+        +SubscribeMultipleWithFilter(Filter, Type...) *Subscription
+        +SubscribeAll() *Subscription
+        +SubscribeAllWithFilter(Filter) *Subscription
+        +UnsubscribeByChannel(chan)
+        +Wait(context.Context, Type) (*Event, error)
+        +WaitMultiple(context.Context, Type...) (*Event, error)
+        +Metrics() *Metrics
+        +SubscriberCount(Type) int
+        +TotalSubscribers() int
+        +Close() error
+    }
+
+    class Config {
+        +int BufferSize
+        +time.Duration PublishTimeout
+        +time.Duration CleanupInterval
+        +int MaxSubscribers
+        +DefaultConfig() *Config
+    }
+
+    class Metrics {
+        +int64 EventsPublished
+        +int64 EventsDelivered
+        +int64 EventsDropped
+        +int64 SubscribersActive
+        +int64 SubscribersTotal
+    }
+
+    class subscriber {
+        -string id
+        -chan *Event channel
+        -Filter filter
+        -[]Type types
+        -bool closed
+        -sync.RWMutex mu
+        -close()
+        -trySend(*Event, time.Duration) bool
+    }
+
+    class Filter {
+        <<func(*Event) bool>>
+        +ByType(Type) Filter
+        +ByTypes(Type...) Filter
+        +BySource(string) Filter
+        +ByGlob(string) Filter
+        +ByPrefix(string) Filter
+        +ByMetadata(string, string) Filter
+        +HasMetadata(string) Filter
+        +And(Filter...) Filter
+        +Or(Filter...) Filter
+        +Not(Filter) Filter
+        +All() Filter
+        +None() Filter
+    }
+
+    class Middleware {
+        <<func(*Event) *Event>>
+        +Chain(Middleware...) Middleware
+        +Logging(*log.Logger) Middleware
+        +LoggingFunc(func) Middleware
+        +Enrich(string, string) Middleware
+        +Timestamp() Middleware
+        +Recover(func) Middleware
+        +RateLimit(int64) Middleware
+    }
+
+    class MetricsCounter {
+        +int64 Total
+        +map~Type,*int64~ ByType
+        +NewMetricsCounter() *MetricsCounter
+        +Middleware() Middleware
+        +GetTotal() int64
+    }
+
+    EventBus *-- Config : uses
+    EventBus *-- Metrics : tracks
+    EventBus *-- subscriber : manages
+    EventBus ..> Middleware : applies
+    EventBus ..> Event : publishes
+    EventBus ..> Subscription : creates
+
+    subscriber ..> Filter : uses
+    subscriber ..> Event : receives
+
+    Subscription ..> Event : delivers via Channel
+    Subscription ..> Type : registered for
+
+    Event ..> Type : has
+
+    MetricsCounter ..> Middleware : produces

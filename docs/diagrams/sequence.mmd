@@ -1,0 +1,62 @@
+sequenceDiagram
+    participant P as Publisher
+    participant B as EventBus
+    participant MW as Middleware Chain
+    participant TS as Type Subscribers
+    participant AS as All Subscribers
+    participant F as Filter
+    participant CH as Subscriber Channel
+
+    P->>B: Publish(event)
+    activate B
+
+    Note over B: Acquire RLock, check closed,<br/>copy middleware + subscriber slices,<br/>release RLock
+
+    B->>MW: Apply middleware[0](event)
+    MW-->>B: transformed event (or nil)
+
+    alt Middleware returns nil
+        Note over B: Event dropped,<br/>no delivery
+    else Middleware returns event
+        B->>MW: Apply middleware[1](event)
+        MW-->>B: transformed event
+        Note over B: ... repeat for all middleware ...
+    end
+
+    Note over B: atomic increment EventsPublished
+
+    loop For each type-specific subscriber
+        B->>F: subscriber.filter(event)
+        alt Filter returns true (or no filter)
+            F-->>B: true
+            B->>CH: trySend(event, timeout)
+            alt Channel has capacity
+                CH-->>B: success
+                Note over B: atomic increment EventsDelivered
+            else Channel full / timeout
+                CH-->>B: failure
+                Note over B: atomic increment EventsDropped
+            end
+        else Filter returns false
+            F-->>B: false
+            Note over B: Skip this subscriber
+        end
+    end
+
+    loop For each global (subscribe-all) subscriber
+        B->>F: subscriber.filter(event)
+        alt Filter passes
+            F-->>B: true
+            B->>CH: trySend(event, timeout)
+            CH-->>B: success or failure
+        else Filter rejects
+            F-->>B: false
+        end
+    end
+
+    deactivate B
+
+    Note over CH: Subscriber reads from channel<br/>via select or range loop
+
+    participant S as Subscriber
+    CH->>S: <-sub.Channel

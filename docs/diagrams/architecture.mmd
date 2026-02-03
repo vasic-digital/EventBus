@@ -1,0 +1,33 @@
+graph TD
+    subgraph "digital.vasic.eventbus"
+        BUS["bus<br/><i>EventBus, Config, Metrics</i><br/><i>Publish, Subscribe, Close</i>"]
+        FILTER["filter<br/><i>ByType, BySource, ByGlob</i><br/><i>ByPrefix, ByMetadata</i><br/><i>And, Or, Not</i>"]
+        MIDDLEWARE["middleware<br/><i>Logging, Metrics, Enrich</i><br/><i>RateLimit, Recover, Chain</i>"]
+        EVENT["event<br/><i>Event, Type, Handler</i><br/><i>Subscription</i>"]
+    end
+
+    BUS -->|"imports"| EVENT
+    BUS -->|"imports"| FILTER
+    BUS -->|"imports"| MIDDLEWARE
+    FILTER -->|"imports"| EVENT
+    MIDDLEWARE -->|"imports"| EVENT
+
+    subgraph "External Dependencies"
+        UUID["github.com/google/uuid"]
+    end
+
+    EVENT -->|"uses"| UUID
+    BUS -->|"uses"| UUID
+
+    subgraph "Event Flow"
+        PUB["Publisher"]
+        MW_CHAIN["Middleware Chain"]
+        FILT["Subscriber Filter"]
+        SUB["Subscriber Channel"]
+    end
+
+    PUB -->|"Publish(event)"| MW_CHAIN
+    MW_CHAIN -->|"transformed event"| FILT
+    FILT -->|"if passes"| SUB
+    MW_CHAIN -.->|"nil = drop"| DROP["Dropped"]
+    FILT -.->|"false = skip"| SKIP["Skipped"]
