@@ -1,0 +1,583 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>bus: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">digital.vasic.eventbus/pkg/bus/bus.go (99.5%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">// Package bus provides the core EventBus implementation for pub/sub
+// event-driven communication.
+package bus
+
+import (
+        "context"
+        "fmt"
+        "sync"
+        "sync/atomic"
+        "time"
+
+        "github.com/google/uuid"
+
+        "digital.vasic.eventbus/pkg/event"
+        "digital.vasic.eventbus/pkg/filter"
+        "digital.vasic.eventbus/pkg/middleware"
+)
+
+// Config holds configuration for the event bus.
+type Config struct {
+        BufferSize      int           // Buffer size for subscriber channels
+        PublishTimeout  time.Duration // Timeout for publishing to subscribers
+        CleanupInterval time.Duration // Interval for cleaning up dead subscribers
+        MaxSubscribers  int           // Maximum subscribers per event type
+}
+
+// DefaultConfig returns default bus configuration.
+func DefaultConfig() *Config <span class="cov8" title="1">{
+        return &amp;Config{
+                BufferSize:      1000,
+                PublishTimeout:  10 * time.Millisecond,
+                CleanupInterval: 30 * time.Second,
+                MaxSubscribers:  100,
+        }
+}</span>
+
+// Metrics tracks event bus statistics.
+type Metrics struct {
+        EventsPublished   int64
+        EventsDelivered   int64
+        EventsDropped     int64
+        SubscribersActive int64
+        SubscribersTotal  int64
+}
+
+// subscriber represents an internal event subscriber.
+type subscriber struct {
+        id      string
+        channel chan *event.Event
+        filter  filter.Filter
+        types   []event.Type
+        closed  bool
+        mu      sync.RWMutex
+}
+
+func (s *subscriber) close() <span class="cov8" title="1">{
+        s.mu.Lock()
+        defer s.mu.Unlock()
+        if !s.closed </span><span class="cov8" title="1">{
+                s.closed = true
+                close(s.channel)
+        }</span>
+}
+
+func (s *subscriber) trySend(e *event.Event, timeout time.Duration) bool <span class="cov8" title="1">{
+        s.mu.RLock()
+        defer s.mu.RUnlock()
+
+        if s.closed </span><span class="cov8" title="1">{
+                return false
+        }</span>
+
+        <span class="cov8" title="1">timer := time.NewTimer(timeout)
+        defer timer.Stop()
+
+        select </span>{
+        case s.channel &lt;- e:<span class="cov8" title="1">
+                return true</span>
+        case &lt;-timer.C:<span class="cov8" title="1">
+                return false</span>
+        }
+}
+
+// EventBus provides publish/subscribe for system events.
+type EventBus struct {
+        subscribers map[event.Type][]*subscriber
+        allSubs     []*subscriber
+        mu          sync.RWMutex
+        config      *Config
+        metrics     *Metrics
+        middlewares []middleware.Middleware
+        ctx         context.Context
+        cancel      context.CancelFunc
+        closed      bool
+}
+
+// New creates a new event bus with the given configuration.
+func New(config *Config) *EventBus <span class="cov8" title="1">{
+        if config == nil </span><span class="cov8" title="1">{
+                config = DefaultConfig()
+        }</span>
+
+        <span class="cov8" title="1">ctx, cancel := context.WithCancel(context.Background())
+
+        b := &amp;EventBus{
+                subscribers: make(map[event.Type][]*subscriber),
+                allSubs:     make([]*subscriber, 0),
+                config:      config,
+                metrics:     &amp;Metrics{},
+                ctx:         ctx,
+                cancel:      cancel,
+        }
+
+        go b.cleanupLoop()
+
+        return b</span>
+}
+
+// Use adds middleware to the event bus. Middleware are applied in order
+// to every published event before delivery to subscribers.
+func (b *EventBus) Use(mw ...middleware.Middleware) <span class="cov8" title="1">{
+        b.mu.Lock()
+        defer b.mu.Unlock()
+        b.middlewares = append(b.middlewares, mw...)
+}</span>
+
+// Publish sends an event to all matching subscribers.
+func (b *EventBus) Publish(e *event.Event) <span class="cov8" title="1">{
+        if e == nil </span><span class="cov8" title="1">{
+                return
+        }</span>
+
+        <span class="cov8" title="1">b.mu.RLock()
+        if b.closed </span><span class="cov8" title="1">{
+                b.mu.RUnlock()
+                return
+        }</span>
+
+        // Apply middleware
+        <span class="cov8" title="1">mws := make([]middleware.Middleware, len(b.middlewares))
+        copy(mws, b.middlewares)
+
+        // Copy subscriber slices to avoid races
+        origSubs := b.subscribers[e.Type]
+        subs := make([]*subscriber, len(origSubs))
+        copy(subs, origSubs)
+
+        allSubs := make([]*subscriber, len(b.allSubs))
+        copy(allSubs, b.allSubs)
+        b.mu.RUnlock()
+
+        // Apply middleware chain
+        for _, mw := range mws </span><span class="cov8" title="1">{
+                e = mw(e)
+                if e == nil </span><span class="cov8" title="1">{
+                        return // Event was dropped by middleware
+                }</span>
+        }
+
+        <span class="cov8" title="1">atomic.AddInt64(&amp;b.metrics.EventsPublished, 1)
+
+        for _, sub := range subs </span><span class="cov8" title="1">{
+                b.publishToSubscriber(sub, e)
+        }</span>
+        <span class="cov8" title="1">for _, sub := range allSubs </span><span class="cov8" title="1">{
+                b.publishToSubscriber(sub, e)
+        }</span>
+}
+
+func (b *EventBus) publishToSubscriber(sub *subscriber, e *event.Event) <span class="cov8" title="1">{
+        if sub.filter != nil &amp;&amp; !sub.filter(e) </span><span class="cov8" title="1">{
+                return
+        }</span>
+
+        <span class="cov8" title="1">if sub.trySend(e, b.config.PublishTimeout) </span><span class="cov8" title="1">{
+                atomic.AddInt64(&amp;b.metrics.EventsDelivered, 1)
+        }</span> else<span class="cov8" title="1"> {
+                atomic.AddInt64(&amp;b.metrics.EventsDropped, 1)
+        }</span>
+}
+
+// PublishAsync publishes an event asynchronously.
+func (b *EventBus) PublishAsync(e *event.Event) <span class="cov8" title="1">{
+        go b.Publish(e)
+}</span>
+
+// Subscribe subscribes to events of a specific type.
+func (b *EventBus) Subscribe(eventType event.Type) *event.Subscription <span class="cov8" title="1">{
+        return b.SubscribeWithFilter(eventType, nil)
+}</span>
+
+// SubscribeWithFilter subscribes to a specific event type with a filter.
+func (b *EventBus) SubscribeWithFilter(
+        eventType event.Type, f filter.Filter,
+) *event.Subscription <span class="cov8" title="1">{
+        b.mu.Lock()
+        defer b.mu.Unlock()
+
+        if b.closed </span><span class="cov8" title="1">{
+                ch := make(chan *event.Event)
+                close(ch)
+                return event.NewSubscription("", nil, ch, nil)
+        }</span>
+
+        <span class="cov8" title="1">sub := &amp;subscriber{
+                id:      uuid.New().String(),
+                channel: make(chan *event.Event, b.config.BufferSize),
+                filter:  f,
+                types:   []event.Type{eventType},
+        }
+
+        b.subscribers[eventType] = append(b.subscribers[eventType], sub)
+        atomic.AddInt64(&amp;b.metrics.SubscribersActive, 1)
+        atomic.AddInt64(&amp;b.metrics.SubscribersTotal, 1)
+
+        cancel := func() </span><span class="cov8" title="1">{ b.unsubscribe(sub) }</span>
+        <span class="cov8" title="1">return event.NewSubscription(
+                sub.id, sub.types, sub.channel, cancel,
+        )</span>
+}
+
+// SubscribeMultiple subscribes to multiple event types.
+func (b *EventBus) SubscribeMultiple(
+        types ...event.Type,
+) *event.Subscription <span class="cov8" title="1">{
+        return b.SubscribeMultipleWithFilter(nil, types...)
+}</span>
+
+// SubscribeMultipleWithFilter subscribes to multiple types with a filter.
+func (b *EventBus) SubscribeMultipleWithFilter(
+        f filter.Filter, types ...event.Type,
+) *event.Subscription <span class="cov8" title="1">{
+        b.mu.Lock()
+        defer b.mu.Unlock()
+
+        if b.closed </span><span class="cov8" title="1">{
+                ch := make(chan *event.Event)
+                close(ch)
+                return event.NewSubscription("", nil, ch, nil)
+        }</span>
+
+        <span class="cov8" title="1">sub := &amp;subscriber{
+                id:      uuid.New().String(),
+                channel: make(chan *event.Event, b.config.BufferSize),
+                filter:  f,
+                types:   types,
+        }
+
+        for _, eventType := range types </span><span class="cov8" title="1">{
+                b.subscribers[eventType] = append(
+                        b.subscribers[eventType], sub,
+                )
+        }</span>
+
+        <span class="cov8" title="1">atomic.AddInt64(&amp;b.metrics.SubscribersActive, 1)
+        atomic.AddInt64(&amp;b.metrics.SubscribersTotal, 1)
+
+        cancel := func() </span><span class="cov8" title="1">{ b.unsubscribe(sub) }</span>
+        <span class="cov8" title="1">return event.NewSubscription(sub.id, sub.types, sub.channel, cancel)</span>
+}
+
+// SubscribeAll subscribes to all event types.
+func (b *EventBus) SubscribeAll() *event.Subscription <span class="cov8" title="1">{
+        return b.SubscribeAllWithFilter(nil)
+}</span>
+
+// SubscribeAllWithFilter subscribes to all events with a filter.
+func (b *EventBus) SubscribeAllWithFilter(
+        f filter.Filter,
+) *event.Subscription <span class="cov8" title="1">{
+        b.mu.Lock()
+        defer b.mu.Unlock()
+
+        if b.closed </span><span class="cov8" title="1">{
+                ch := make(chan *event.Event)
+                close(ch)
+                return event.NewSubscription("", nil, ch, nil)
+        }</span>
+
+        <span class="cov8" title="1">sub := &amp;subscriber{
+                id:      uuid.New().String(),
+                channel: make(chan *event.Event, b.config.BufferSize),
+                filter:  f,
+        }
+
+        b.allSubs = append(b.allSubs, sub)
+        atomic.AddInt64(&amp;b.metrics.SubscribersActive, 1)
+        atomic.AddInt64(&amp;b.metrics.SubscribersTotal, 1)
+
+        cancel := func() </span><span class="cov8" title="1">{ b.unsubscribe(sub) }</span>
+        <span class="cov8" title="1">return event.NewSubscription(sub.id, nil, sub.channel, cancel)</span>
+}
+
+// unsubscribe removes a subscriber from the bus.
+func (b *EventBus) unsubscribe(sub *subscriber) <span class="cov8" title="1">{
+        b.mu.Lock()
+        defer b.mu.Unlock()
+
+        // Remove from type-specific subscribers
+        for eventType, subs := range b.subscribers </span><span class="cov8" title="1">{
+                for i, s := range subs </span><span class="cov8" title="1">{
+                        if s.id == sub.id </span><span class="cov8" title="1">{
+                                s.close()
+                                b.subscribers[eventType] = append(
+                                        subs[:i], subs[i+1:]...,
+                                )
+                                atomic.AddInt64(&amp;b.metrics.SubscribersActive, -1)
+                                return
+                        }</span>
+                }
+        }
+
+        // Remove from all-event subscribers
+        <span class="cov8" title="1">for i, s := range b.allSubs </span><span class="cov8" title="1">{
+                if s.id == sub.id </span><span class="cov8" title="1">{
+                        s.close()
+                        b.allSubs = append(b.allSubs[:i], b.allSubs[i+1:]...)
+                        atomic.AddInt64(&amp;b.metrics.SubscribersActive, -1)
+                        return
+                }</span>
+        }
+}
+
+// UnsubscribeByChannel removes a subscriber by its channel reference.
+func (b *EventBus) UnsubscribeByChannel(ch &lt;-chan *event.Event) <span class="cov8" title="1">{
+        b.mu.Lock()
+        defer b.mu.Unlock()
+
+        for eventType, subs := range b.subscribers </span><span class="cov8" title="1">{
+                for i, sub := range subs </span><span class="cov8" title="1">{
+                        if sub.channel == ch </span><span class="cov8" title="1">{
+                                sub.close()
+                                b.subscribers[eventType] = append(
+                                        subs[:i], subs[i+1:]...,
+                                )
+                                atomic.AddInt64(&amp;b.metrics.SubscribersActive, -1)
+                                return
+                        }</span>
+                }
+        }
+
+        <span class="cov8" title="1">for i, sub := range b.allSubs </span><span class="cov8" title="1">{
+                if sub.channel == ch </span><span class="cov8" title="1">{
+                        sub.close()
+                        b.allSubs = append(b.allSubs[:i], b.allSubs[i+1:]...)
+                        atomic.AddInt64(&amp;b.metrics.SubscribersActive, -1)
+                        return
+                }</span>
+        }
+}
+
+// Wait blocks until an event of the specified type is received or context
+// is cancelled.
+func (b *EventBus) Wait(
+        ctx context.Context, eventType event.Type,
+) (*event.Event, error) <span class="cov8" title="1">{
+        sub := b.Subscribe(eventType)
+        defer sub.Cancel()
+
+        select </span>{
+        case &lt;-ctx.Done():<span class="cov8" title="1">
+                return nil, ctx.Err()</span>
+        case e, ok := &lt;-sub.Channel:<span class="cov8" title="1">
+                if !ok </span><span class="cov8" title="1">{
+                        return nil, fmt.Errorf("event bus closed")
+                }</span>
+                <span class="cov8" title="1">return e, nil</span>
+        }
+}
+
+// WaitMultiple waits for any event from the specified types.
+func (b *EventBus) WaitMultiple(
+        ctx context.Context, types ...event.Type,
+) (*event.Event, error) <span class="cov8" title="1">{
+        sub := b.SubscribeMultiple(types...)
+        defer sub.Cancel()
+
+        select </span>{
+        case &lt;-ctx.Done():<span class="cov0" title="0">
+                return nil, ctx.Err()</span>
+        case e, ok := &lt;-sub.Channel:<span class="cov8" title="1">
+                if !ok </span><span class="cov8" title="1">{
+                        return nil, fmt.Errorf("event bus closed")
+                }</span>
+                <span class="cov8" title="1">return e, nil</span>
+        }
+}
+
+func (b *EventBus) cleanupLoop() <span class="cov8" title="1">{
+        interval := b.config.CleanupInterval
+        if interval &lt;= 0 </span><span class="cov8" title="1">{
+                interval = time.Minute
+        }</span>
+
+        <span class="cov8" title="1">ticker := time.NewTicker(interval)
+        defer ticker.Stop()
+
+        for </span><span class="cov8" title="1">{
+                select </span>{
+                case &lt;-b.ctx.Done():<span class="cov8" title="1">
+                        return</span>
+                case &lt;-ticker.C:<span class="cov8" title="1">
+                        b.cleanup()</span>
+                }
+        }
+}
+
+func (b *EventBus) cleanup() <span class="cov8" title="1">{
+        b.mu.Lock()
+        defer b.mu.Unlock()
+
+        for eventType, subs := range b.subscribers </span><span class="cov8" title="1">{
+                active := make([]*subscriber, 0, len(subs))
+                for _, sub := range subs </span><span class="cov8" title="1">{
+                        sub.mu.RLock()
+                        if !sub.closed </span><span class="cov8" title="1">{
+                                active = append(active, sub)
+                        }</span>
+                        <span class="cov8" title="1">sub.mu.RUnlock()</span>
+                }
+                <span class="cov8" title="1">b.subscribers[eventType] = active</span>
+        }
+
+        <span class="cov8" title="1">active := make([]*subscriber, 0, len(b.allSubs))
+        for _, sub := range b.allSubs </span><span class="cov8" title="1">{
+                sub.mu.RLock()
+                if !sub.closed </span><span class="cov8" title="1">{
+                        active = append(active, sub)
+                }</span>
+                <span class="cov8" title="1">sub.mu.RUnlock()</span>
+        }
+        <span class="cov8" title="1">b.allSubs = active</span>
+}
+
+// Metrics returns a snapshot of current bus metrics.
+func (b *EventBus) Metrics() *Metrics <span class="cov8" title="1">{
+        return &amp;Metrics{
+                EventsPublished:   atomic.LoadInt64(&amp;b.metrics.EventsPublished),
+                EventsDelivered:   atomic.LoadInt64(&amp;b.metrics.EventsDelivered),
+                EventsDropped:     atomic.LoadInt64(&amp;b.metrics.EventsDropped),
+                SubscribersActive: atomic.LoadInt64(&amp;b.metrics.SubscribersActive),
+                SubscribersTotal:  atomic.LoadInt64(&amp;b.metrics.SubscribersTotal),
+        }
+}</span>
+
+// SubscriberCount returns the number of subscribers for an event type.
+func (b *EventBus) SubscriberCount(eventType event.Type) int <span class="cov8" title="1">{
+        b.mu.RLock()
+        defer b.mu.RUnlock()
+        return len(b.subscribers[eventType])
+}</span>
+
+// TotalSubscribers returns the total number of active subscribers.
+func (b *EventBus) TotalSubscribers() int <span class="cov8" title="1">{
+        return int(atomic.LoadInt64(&amp;b.metrics.SubscribersActive))
+}</span>
+
+// Close shuts down the event bus and closes all subscriber channels.
+func (b *EventBus) Close() error <span class="cov8" title="1">{
+        b.mu.Lock()
+        defer b.mu.Unlock()
+
+        if b.closed </span><span class="cov8" title="1">{
+                return nil
+        }</span>
+
+        <span class="cov8" title="1">b.closed = true
+        b.cancel()
+
+        for _, subs := range b.subscribers </span><span class="cov8" title="1">{
+                for _, sub := range subs </span><span class="cov8" title="1">{
+                        sub.close()
+                }</span>
+        }
+        <span class="cov8" title="1">for _, sub := range b.allSubs </span><span class="cov8" title="1">{
+                sub.close()
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

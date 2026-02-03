@@ -134,3 +134,24 @@ func TestNone(t *testing.T) {
 	f := None()
 	assert.False(t, f(newTestEvent("any", "any")))
 }
+
+func TestByGlob_InvalidPattern(t *testing.T) {
+	// Test glob pattern that causes path.Match to return an error
+	// Invalid patterns include unclosed brackets like "[abc"
+	tests := []struct {
+		name    string
+		pattern string
+	}{
+		{"unclosed_bracket", "[abc"},
+		{"bad_range", "[z-a]"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := ByGlob(tt.pattern)
+			// Invalid pattern should return false
+			result := f(newTestEvent("test.event", "src"))
+			assert.False(t, result, "invalid glob pattern should return false")
+		})
+	}
+}

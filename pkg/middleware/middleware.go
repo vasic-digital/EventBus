@@ -100,15 +100,29 @@ func Timestamp() Middleware {
 
 // Recover returns middleware that recovers from panics in downstream
 // processing, preventing a single bad handler from crashing the bus.
+// The optional processor function allows wrapping event processing logic
+// that may panic - if nil, the event is passed through unchanged.
 func Recover(onPanic func(interface{})) Middleware {
-	return func(e *event.Event) *event.Event {
+	return RecoverWithProcessor(onPanic, nil)
+}
+
+// RecoverWithProcessor returns middleware that recovers from panics during
+// event processing. The processor function processes the event and may panic;
+// any panic is recovered and passed to onPanic. If processor is nil, the
+// event is returned unchanged (useful for protecting downstream handlers).
+func RecoverWithProcessor(onPanic func(interface{}), processor func(*event.Event) *event.Event) Middleware {
+	return func(e *event.Event) (result *event.Event) {
 		defer func() {
 			if r := recover(); r != nil {
 				if onPanic != nil {
 					onPanic(r)
 				}
+				result = nil // Event is dropped on panic
 			}
 		}()
+		if processor != nil {
+			return processor(e)
+		}
 		return e
 	}
 }
