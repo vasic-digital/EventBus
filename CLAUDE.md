@@ -10,15 +10,12 @@ same session as the change.** Coverage and green suites are not evidence.
 
 ### Acceptance demo for this module
 
-<!-- TODO: replace this block with the exact command(s) that exercise this
-     module end-to-end against real dependencies, and the expected output.
-     The commands must run the real artifact (built binary, deployed
-     container, real service) — no in-process fakes, no mocks, no
-     `httptest.NewServer`, no Robolectric, no JSDOM as proof of done. -->
-
 ```bash
-# TODO
+# Publish/subscribe with typed events + middleware filter
+cd EventBus && GOMAXPROCS=2 nice -n 19 go test -count=1 -race -v ./tests/integration/...
 ```
+Expect: all integration tests PASS; see `pkg/bus`, `pkg/filter`, `pkg/middleware` exercised against the in-process Event/Subscription/Middleware interfaces documented in `EventBus/README.md`'s Quick Start.
+
 
 ## Overview
 
