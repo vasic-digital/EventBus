@@ -15,7 +15,7 @@ import (
 
 func TestSecurity_NilEventHandling(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping security test in short mode")
+		t.Skip("skipping security test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(nil)
@@ -28,7 +28,7 @@ func TestSecurity_NilEventHandling(t *testing.T) {
 
 func TestSecurity_NilFilterHandling(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping security test in short mode")
+		t.Skip("skipping security test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	e := event.New("test", "src", nil)
@@ -46,7 +46,7 @@ func TestSecurity_NilFilterHandling(t *testing.T) {
 
 func TestSecurity_LargePayloadHandling(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping security test in short mode")
+		t.Skip("skipping security test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(nil)
@@ -70,7 +70,7 @@ func TestSecurity_LargePayloadHandling(t *testing.T) {
 
 func TestSecurity_MiddlewarePanicRecovery(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping security test in short mode")
+		t.Skip("skipping security test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(nil)
@@ -99,7 +99,7 @@ func TestSecurity_MiddlewarePanicRecovery(t *testing.T) {
 
 func TestSecurity_RateLimitMiddleware(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping security test in short mode")
+		t.Skip("skipping security test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(nil)
@@ -131,7 +131,7 @@ done:
 
 func TestSecurity_FilterCombinators(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping security test in short mode")
+		t.Skip("skipping security test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	e := event.New("test.event", "service-a", nil)
@@ -167,7 +167,7 @@ func TestSecurity_FilterCombinators(t *testing.T) {
 
 func TestSecurity_DoubleCloseHandling(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping security test in short mode")
+		t.Skip("skipping security test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(nil)
@@ -181,7 +181,7 @@ func TestSecurity_DoubleCloseHandling(t *testing.T) {
 
 func TestSecurity_PublishAfterClose(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping security test in short mode")
+		t.Skip("skipping security test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(nil)

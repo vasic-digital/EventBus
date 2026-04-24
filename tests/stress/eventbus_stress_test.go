@@ -17,7 +17,7 @@ import (
 
 func TestStress_ConcurrentPublish(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping stress test in short mode")
+		t.Skip("skipping stress test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(&bus.Config{
@@ -56,7 +56,7 @@ func TestStress_ConcurrentPublish(t *testing.T) {
 
 func TestStress_ConcurrentSubscribeUnsubscribe(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping stress test in short mode")
+		t.Skip("skipping stress test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(nil)
@@ -82,7 +82,7 @@ func TestStress_ConcurrentSubscribeUnsubscribe(t *testing.T) {
 
 func TestStress_ConcurrentPublishAndSubscribe(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping stress test in short mode")
+		t.Skip("skipping stress test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(&bus.Config{
@@ -143,7 +143,7 @@ func TestStress_ConcurrentPublishAndSubscribe(t *testing.T) {
 
 func TestStress_HighThroughputWithFilter(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping stress test in short mode")
+		t.Skip("skipping stress test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(&bus.Config{
@@ -192,7 +192,7 @@ drain:
 
 func TestStress_MetricsConcurrentAccess(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping stress test in short mode")
+		t.Skip("skipping stress test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(nil)
@@ -216,7 +216,7 @@ func TestStress_MetricsConcurrentAccess(t *testing.T) {
 
 func TestStress_RapidCreateDestroyBus(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping stress test in short mode")
+		t.Skip("skipping stress test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	const goroutines = 50

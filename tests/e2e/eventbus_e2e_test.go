@@ -17,7 +17,7 @@ import (
 
 func TestE2E_PublishSubscribeWorkflow(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping e2e test in short mode")
+		t.Skip("skipping e2e test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(nil)
@@ -55,7 +55,7 @@ func TestE2E_PublishSubscribeWorkflow(t *testing.T) {
 
 func TestE2E_EventFilteringPipeline(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping e2e test in short mode")
+		t.Skip("skipping e2e test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(nil)
@@ -103,7 +103,7 @@ loop:
 
 func TestE2E_MiddlewareChainProcessing(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping e2e test in short mode")
+		t.Skip("skipping e2e test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(nil)
@@ -134,7 +134,7 @@ func TestE2E_MiddlewareChainProcessing(t *testing.T) {
 
 func TestE2E_AsyncPublishAndCollect(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping e2e test in short mode")
+		t.Skip("skipping e2e test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(nil)
@@ -166,7 +166,7 @@ loop:
 
 func TestE2E_BusShutdownGraceful(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping e2e test in short mode")
+		t.Skip("skipping e2e test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(nil)
@@ -190,7 +190,7 @@ func TestE2E_BusShutdownGraceful(t *testing.T) {
 
 func TestE2E_WaitMultipleEventTypes(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping e2e test in short mode")
+		t.Skip("skipping e2e test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(nil)
@@ -212,7 +212,7 @@ func TestE2E_WaitMultipleEventTypes(t *testing.T) {
 
 func TestE2E_EventBuilderChaining(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping e2e test in short mode")
+		t.Skip("skipping e2e test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	e := event.New("build.completed", "ci", map[string]string{"status": "success"}).

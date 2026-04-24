@@ -16,7 +16,7 @@ import (
 
 func TestBusPublishSubscribeFlow(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
+		t.Skip("skipping integration test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(&bus.Config{
@@ -48,7 +48,7 @@ func TestBusPublishSubscribeFlow(t *testing.T) {
 
 func TestBusMultipleSubscribers(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
+		t.Skip("skipping integration test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(nil)
@@ -82,7 +82,7 @@ func TestBusMultipleSubscribers(t *testing.T) {
 
 func TestBusSubscribeAllWithFilter(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
+		t.Skip("skipping integration test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(nil)
@@ -110,7 +110,7 @@ func TestBusSubscribeAllWithFilter(t *testing.T) {
 
 func TestBusMiddlewareIntegration(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
+		t.Skip("skipping integration test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(nil)
@@ -140,7 +140,7 @@ func TestBusMiddlewareIntegration(t *testing.T) {
 
 func TestBusWaitIntegration(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
+		t.Skip("skipping integration test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(nil)
@@ -162,7 +162,7 @@ func TestBusWaitIntegration(t *testing.T) {
 
 func TestBusUnsubscribeIntegration(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
+		t.Skip("skipping integration test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(nil)
@@ -179,7 +179,7 @@ func TestBusUnsubscribeIntegration(t *testing.T) {
 
 func TestBusMetricsTracking(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
+		t.Skip("skipping integration test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(&bus.Config{
@@ -208,7 +208,7 @@ func TestBusMetricsTracking(t *testing.T) {
 
 func TestBusSubscribeMultipleTypes(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
+		t.Skip("skipping integration test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := bus.New(nil)
