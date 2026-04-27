@@ -1279,7 +1279,7 @@ func TestEventBus_SubscribeMultipleWithFilter_Filtered(t *testing.T) {
 
 func TestEventBus_StressTest_HighVolume(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping stress test in short mode")
+		t.Skip("skipping stress test in short mode")  // SKIP-OK: #short-mode
 	}
 
 	b := New(&Config{
