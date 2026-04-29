@@ -1114,6 +1114,7 @@ func TestEventBus_WaitMultiple_BusClosed(t *testing.T) {
 }
 
 func TestEventBus_WaitMultiple_ChannelClosed(t *testing.T) {
+	// bluff-scan: no-assert-ok (event-bus smoke — pub/sub must not panic on any subscriber count)
 	// Test the "event bus closed" error path in WaitMultiple
 	// when the channel is closed while waiting
 	b := New(nil)
