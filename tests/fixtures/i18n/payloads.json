@@ -1,0 +1,45 @@
+{
+  "_comment": "Round-245 bilingual fixtures for EventBus. Used by eventbus_describe_challenge.sh to verify UTF-8 + non-ASCII metadata round-trip. CONST-046 alignment.",
+  "events": [
+    {
+      "type": "user.created",
+      "source": "auth-service",
+      "locale": "en",
+      "payload": {"name": "Alice", "greeting": "Hello, world!"},
+      "metadata": {"region": "us-east-1", "lang": "en"}
+    },
+    {
+      "type": "user.created",
+      "source": "auth-service",
+      "locale": "sr",
+      "payload": {"name": "Милош", "greeting": "Здраво, свете!"},
+      "metadata": {"region": "eu-west-3", "lang": "sr-Cyrl"}
+    },
+    {
+      "type": "order.completed",
+      "source": "order-service",
+      "locale": "ja",
+      "payload": {"name": "田中", "greeting": "こんにちは、世界！"},
+      "metadata": {"region": "ap-northeast-1", "lang": "ja"}
+    },
+    {
+      "type": "cache.evicted",
+      "source": "cache-service",
+      "locale": "ar",
+      "payload": {"key": "مفتاح", "reason": "انتهاء الصلاحية"},
+      "metadata": {"region": "me-south-1", "lang": "ar", "dir": "rtl"}
+    },
+    {
+      "type": "provider.health.changed",
+      "source": "provider-monitor",
+      "locale": "zh-CN",
+      "payload": {"provider": "供应商", "status": "运行中"},
+      "metadata": {"region": "cn-north-1", "lang": "zh-CN"}
+    }
+  ],
+  "expected_invariants": {
+    "byte_preservation": "Metadata key and value bytes MUST round-trip without modification.",
+    "type_preservation": "event.Type literal MUST equal the published Type after middleware chain.",
+    "delivery": "Each event must be Delivered to exactly one matching subscriber (filter by Type)."
+  }
+}
