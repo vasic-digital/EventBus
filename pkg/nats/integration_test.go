@@ -20,7 +20,7 @@ import (
 func TestNATSBus_RealPublishSubscribe(t *testing.T) {
 	url := os.Getenv("NATS_URL")
 	if url == "" {
-		t.Skip("NATS_URL not set; skipping real NATS JetStream integration test")
+		t.Skip("SKIP-OK: #HXC-050 NATS_URL not set; skipping real NATS JetStream integration test (env-gated; runs vs real NATS when NATS_URL set)")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -117,7 +117,7 @@ func TestNATSBus_RealPublishSubscribe(t *testing.T) {
 func TestNATSBus_RealClose_StopsDelivery(t *testing.T) {
 	url := os.Getenv("NATS_URL")
 	if url == "" {
-		t.Skip("NATS_URL not set; skipping real NATS JetStream integration test")
+		t.Skip("SKIP-OK: #HXC-050 NATS_URL not set; skipping real NATS JetStream integration test (env-gated; runs vs real NATS when NATS_URL set)")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
